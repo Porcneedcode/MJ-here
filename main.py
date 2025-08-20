@@ -24,7 +24,23 @@ import aiohttp
 from io import BytesIO
 from PIL import Image
 
+from flask import Flask
+from threading import Thread
+
 load_dotenv()
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I'm alive!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 preload_queue = asyncio.Queue()
 auto_leave_timers = defaultdict(int)
@@ -934,5 +950,6 @@ async def on_ready():
     )
 
 if __name__ == "__main__":
+    keep_alive()
     DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
     bot.run(DISCORD_TOKEN)
