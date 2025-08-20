@@ -29,19 +29,6 @@ from threading import Thread
 
 load_dotenv()
 
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "I'm alive!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
 preload_queue = asyncio.Queue()
 auto_leave_timers = defaultdict(int)
 last_ui_message = None
@@ -474,8 +461,8 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
             '-reconnect_streamed 1 '
             '-reconnect_delay_max 5 '
             '-nostdin '
-            '-probesize 90M '
-            '-analyzeduration 90M '
+            '-probesize 120M '
+            '-analyzeduration 120M '
             '-thread_queue_size 8192 '
             '-loglevel warning '
         ),
@@ -758,7 +745,7 @@ class MJ(app_commands.Group):
         else:
             music_queue.has_added_once = True
 
-        if not vc.is_playing() and not vc.is_paused():
+        if not vc.is_playing() and not vc.is_paused() and not getattr(self, "pending_sfx", False):
             async with music_queue.playing_lock:
                 await play_next(interaction)
 
@@ -827,20 +814,23 @@ class MJ(app_commands.Group):
 
         if not vc or not vc.is_connected():
             if interaction.user.voice and interaction.user.voice.channel:
-                vc = await interaction.user.voice.channel.connect()
+                try:
+                    vc = await interaction.user.voice.channel.connect()
+                except discord.ClientException:
+                    vc = interaction.guild.voice_client
             else:
                 await interaction.response.send_message("เข้าห้องก่อนดิ เล่น sfx คนเดียวมันเหงา 😭", ephemeral=True)
                 return
-
-        if self.pending_sfx_task and not self.pending_sfx_task.done():
-            self.pending_sfx_task.cancel()
 
         if vc.is_playing() or vc.is_paused() or (music_queue and not music_queue.is_empty()):
             await interaction.response.send_message("เฮ้! ยังไม่ใช่เวลาเล่น sfx ลองใหม่ครั้งหน้าละกัน 😣", ephemeral=True)
             return
 
+        if self.pending_sfx_task and not self.pending_sfx_task.done():
+            self.pending_sfx_task.cancel()
 
         self.pending_sfx = True
+        self.last_interaction = interaction  
 
         await interaction.response.send_message("รับไปซะ 🤪🫵", ephemeral=True)
 
@@ -861,6 +851,12 @@ class MJ(app_commands.Group):
             self.block_leave = False
             if error:
                 print(f"SFX play error: {error}")
+            else:
+                if music_queue and not music_queue.is_empty() and getattr(self, "last_interaction", None):
+                    asyncio.run_coroutine_threadsafe(
+                        play_next(self.last_interaction),
+                        self.last_interaction.client.loop
+                    )
 
         vc.play(discord.FFmpegPCMAudio(sfx_path), after=after_sfx_playing)
 
@@ -908,37 +904,37 @@ intents = discord.Intents.default()
 intents.message_content = False
 intents.voice_states = True
 
-bot = commands.Bot(command_prefix="/mj", intents=intents, help_command=None)
 music_queue = MusicQueue()
 
 spotify_client_id = os.environ.get("SPOTIPY_CLIENT_ID")
 spotify_client_secret = os.environ.get("SPOTIPY_CLIENT_SECRET")
-sp = spotipy.Spotify(client_credentials_manager=NoCacheSpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret))
+sp = spotipy.Spotify(
+    client_credentials_manager=NoCacheSpotifyClientCredentials(
+        client_id=spotify_client_id, client_secret=spotify_client_secret
+    )
+)
 
-mj_group = MJ(bot, sp)
+mj_group = MJ(None, sp)
+
+class MyBot(commands.Bot):
+    async def setup_hook(self):
+        mj_group.bot = self
+        self.tree.add_command(mj_group)
+        try:
+            await self.tree.sync()
+            print("🔄 Synced app commands successfully.")
+        except Exception as e:
+            print(f"Error syncing commands: {e}")
+        self.loop.create_task(auto_leave_check_loop(self))
+
+bot = MyBot(command_prefix="!", intents=intents, help_command=None)
 
 @bot.event
 async def on_ready():
     print(f"✅ Logged in as {bot.user} ({bot.user.id})")
-    await bot.change_presence(activity=discord.Game(name="เล่นบ้าบออะไรละหมอ ถ้าอยากจะเล่นให้ /mj มา 😜"))
-    bot.tree.add_command(mj_group)
-    try:
-        await bot.tree.sync()
-        print("🔄 Synced app commands successfully.")
-    except Exception as e:
-        print(f"Error syncing commands: {e}")
-
-    keep_alive()
-    bot.loop.create_task(auto_leave_check_loop(bot))
-
-@bot.event
-async def on_disconnect():
-    print("⚠️ Bot disconnected from Discord. Trying to reconnect...")
-
-@bot.event
-async def on_resumed():
-    print("✅ Bot reconnected to Discord.")
-
+    await bot.change_presence(
+        activity=discord.Game(name="เล่นบ้าบออะไรละหมอ ถ้าอยากจะเล่นให้ /mj มา 😜")
+    )
 
 if __name__ == "__main__":
     DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
