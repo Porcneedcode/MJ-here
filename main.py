@@ -24,9 +24,6 @@ import aiohttp
 from io import BytesIO
 from PIL import Image
 
-from flask import Flask
-from threading import Thread
-
 load_dotenv()
 
 preload_queue = asyncio.Queue()
