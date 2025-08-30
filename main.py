@@ -379,8 +379,10 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
     global last_ui_message, music_queue
 
     if music_queue is None:
-        if interaction.channel:
-            await interaction.channel.send("hmmm เพลงไม่มี 🗿")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("hmmm เพลงไม่มี 🗿", ephemeral=True)
+        else:
+            await interaction.followup.send("hmmm เพลงไม่มี 🗿", ephemeral=True)
         return
     
     vc_raw = interaction.guild.voice_client if interaction.guild else None
@@ -400,8 +402,11 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
                 await thinking_msg.delete()
             except Exception as e:
                 print(f"[play_next] ลบ thinking_msg ไม่ได้: {e}")
-        if interaction.channel:
-            await interaction.channel.send("เล่นเพลงจบแล้ว 😄")
+
+        if not interaction.response.is_done():
+            await interaction.response.send_message("เล่นเพลงจบแล้ว 😄", ephemeral=True)
+        else:
+            await interaction.followup.send("เล่นเพลงจบแล้ว 😄", ephemeral=True)
         return
     
     if vc is None:
@@ -410,14 +415,19 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
                 await thinking_msg.delete()
             except Exception as e:
                 print(f"[play_next] ลบ thinking_msg ไม่ได้: {e}")
-        if interaction.channel:
-            await interaction.channel.send("ไปอยู่ในห้องก่อนเดี๋ยวตามไปถ้าเรียกอะ 🗣️", ephemeral=True)
+
+        if not interaction.response.is_done():
+            await interaction.response.send_message("ไปอยู่ในห้องก่อนเดี๋ยวตามไปถ้าเรียกอะ 🗣️", ephemeral=True)
+        else:
+            await interaction.followup.send("ไปอยู่ในห้องก่อนเดี๋ยวตามไปถ้าเรียกอะ 🗣️", ephemeral=True)
         return
     
     stream_url = await get_stream_url(source)
     if not stream_url:
-        if interaction.channel:
-            await interaction.channel.send("เพลงไรไม่รู้ 😢")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("เพลงไรไม่รู้ 😢", ephemeral=True)
+        else:
+            await interaction.followup.send("เพลงไรไม่รู้ 😢", ephemeral=True)
         return
 
     await asyncio.sleep(0.5)
@@ -474,16 +484,17 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
             '-reconnect_streamed 1 '
             '-reconnect_delay_max 5 '
             '-nostdin '
-            '-probesize 120M '
-            '-analyzeduration 120M '
-            '-thread_queue_size 8192 '
+            '-probesize 156M '
+            '-analyzeduration 156M '
+            '-thread_queue_size 10000 '
+            '-nostats -hide_banner '
             '-loglevel warning '
         ),
         'options': (
             '-vn '
             '-ac 2 '
             '-ar 48000 '
-            '-bufsize 275M '
+            '-bufsize 300M '
             '-b:a 256k '
             '-rtbufsize 650M '
             '-af aresample=async=2000:min_hard_comp=0.100:first_pts=0,dynaudnorm=f=150:g=15,volume=1.0 '
