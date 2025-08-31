@@ -65,12 +65,21 @@ def ytdl_extract_info(url, download):
         }
     }
 
-    if os.path.exists("cookies.txt"):
-        ytdl_format_options["cookiefile"] = "cookies.txt"
+    cookies_path = "cookies.txt"
+    env_cookies = os.getenv("YT_COOKIES")
+
+    if os.path.exists(cookies_path):
+        ytdl_format_options["cookiefile"] = cookies_path
         print("✅ ใช้ cookies.txt โหลดเพลง")
 
+    elif env_cookies:
+        with open(cookies_path, "w", encoding="utf-8") as f:
+            f.write(env_cookies)
+        ytdl_format_options["cookiefile"] = cookies_path
+        print("✅ ใช้ cookies จาก Environment Variable โหลดเพลง")
+
     else:
-        print("⚠️ ไม่พบ cookies.txt → โหลดแบบปกติ")
+        print("⚠️ ไม่พบ cookies → โหลดแบบปกติ (อาจเล่นไม่ได้ถ้าเป็นวิดีโอจำกัดอายุ)")
 
     ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
     return ytdl.extract_info(url, download=download)
