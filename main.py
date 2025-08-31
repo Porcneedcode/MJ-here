@@ -706,7 +706,7 @@ class MJ(app_commands.Group):
         already_in_channel = vc is not None and vc.is_connected()
 
         if not already_in_channel:
-            await interaction.response.send_message("ว่าไง hee hee! แต่แบบพูดพร่ำทําเพลง 🙋‍♂️")
+            await interaction.response.defer(thinking=True)
         else:
             await interaction.response.defer(thinking=True)
 
