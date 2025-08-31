@@ -64,6 +64,14 @@ def ytdl_extract_info(url, download):
             }
         }
     }
+
+    if os.path.exists("cookies.txt"):
+        ytdl_format_options["cookiefile"] = "cookies.txt"
+        print("✅ ใช้ cookies.txt โหลดเพลง")
+
+    else:
+        print("⚠️ ไม่พบ cookies.txt → โหลดแบบปกติ")
+
     ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
     return ytdl.extract_info(url, download=download)
 
