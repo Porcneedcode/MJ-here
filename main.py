@@ -68,13 +68,20 @@ def ytdl_extract_info(url, download):
     cookies_path = "cookies.txt"
     env_cookies = os.getenv("YT_COOKIES")
 
+    # ✅ ถ้ามีไฟล์ cookies.txt อยู่แล้ว
     if os.path.exists(cookies_path):
         ytdl_format_options["cookiefile"] = cookies_path
         print("✅ ใช้ cookies.txt โหลดเพลง")
 
+    # ✅ ถ้าไม่มีไฟล์ แต่มี ENV
     elif env_cookies:
+        # เช็คว่า ENV มีบรรทัด header มั้ย ถ้าไม่มีให้เติมเอง
+        if not env_cookies.strip().startswith("#"):
+            env_cookies = "# Netscape HTTP Cookie File\n" + env_cookies.strip()
+
         with open(cookies_path, "w", encoding="utf-8") as f:
             f.write(env_cookies)
+
         ytdl_format_options["cookiefile"] = cookies_path
         print("✅ ใช้ cookies จาก Environment Variable โหลดเพลง")
 
