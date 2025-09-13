@@ -50,10 +50,14 @@ music_queue = None
 import os
 import yt_dlp
 
+import os
+import yt_dlp
+
 def ytdl_extract_info(url, download):
     cookies_path = "cookies.txt"
     env_cookies = os.getenv("YT_COOKIES")
 
+    # base options
     ytdl_format_options = {
         'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'quiet': True,
@@ -68,9 +72,7 @@ def ytdl_extract_info(url, download):
             'youtube': {
                 'player_client': ['web']
             }
-        },
-        # ค่า default ถ้ามี cookies.txt
-        'cookiefile': cookies_path
+        }
     }
 
     # ✅ ถ้ามีไฟล์ cookies.txt อยู่แล้ว
@@ -80,7 +82,6 @@ def ytdl_extract_info(url, download):
 
     # ✅ ถ้าไม่มีไฟล์ แต่มี ENV
     elif env_cookies:
-        # เช็คว่า ENV มี header มั้ย ถ้าไม่มีให้เติมเอง
         if not env_cookies.strip().startswith("#"):
             env_cookies = "# Netscape HTTP Cookie File\n" + env_cookies.strip()
 
@@ -93,8 +94,9 @@ def ytdl_extract_info(url, download):
     else:
         print("⚠️ ไม่พบ cookies → โหลดแบบปกติ (อาจเล่นไม่ได้ถ้าเป็นวิดีโอจำกัดอายุ)")
 
-    ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
-    return ydl.extract_info(url, download=download)
+    # ✅ ใช้ ytdl ตัวเดียว ไม่สลับชื่อ
+    with yt_dlp.YoutubeDL(ytdl_format_options) as ytdl:
+        return ytdl.extract_info(url, download=download)
 
 async def connect_voice(channel):
     for attempt in range(3):
