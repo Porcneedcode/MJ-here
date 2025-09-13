@@ -47,8 +47,7 @@ auto_leave_timers = defaultdict(int)
 last_ui_message = None
 music_queue = None
 
-def ytdl_extract_info(url, download):
-    ytdl_format_options = {
+ ytdl_format_options = {
         'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'quiet': True,
         'default_search': 'ytsearch',
@@ -62,7 +61,9 @@ def ytdl_extract_info(url, download):
             'youtube': {
                 'player_client': ['web']
             }
-        }
+        },
+        # 👇 เพิ่มตรงนี้เพื่อบอกให้ yt_dlp ใช้ cookie file
+        'cookiefile': 'cookies.txt'
     }
 
     cookies_path = "cookies.txt"
