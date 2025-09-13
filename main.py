@@ -47,7 +47,14 @@ auto_leave_timers = defaultdict(int)
 last_ui_message = None
 music_queue = None
 
- ytdl_format_options = {
+import os
+import yt_dlp
+
+def ytdl_extract_info(url, download):
+    cookies_path = "cookies.txt"
+    env_cookies = os.getenv("YT_COOKIES")
+
+    ytdl_format_options = {
         'format': 'bestaudio[ext=m4a]/bestaudio/best',
         'quiet': True,
         'default_search': 'ytsearch',
@@ -62,12 +69,9 @@ music_queue = None
                 'player_client': ['web']
             }
         },
-        # 👇 เพิ่มตรงนี้เพื่อบอกให้ yt_dlp ใช้ cookie file
-        'cookiefile': 'cookies.txt'
+        # ค่า default ถ้ามี cookies.txt
+        'cookiefile': cookies_path
     }
-
-    cookies_path = "cookies.txt"
-    env_cookies = os.getenv("YT_COOKIES")
 
     # ✅ ถ้ามีไฟล์ cookies.txt อยู่แล้ว
     if os.path.exists(cookies_path):
@@ -76,7 +80,7 @@ music_queue = None
 
     # ✅ ถ้าไม่มีไฟล์ แต่มี ENV
     elif env_cookies:
-        # เช็คว่า ENV มีบรรทัด header มั้ย ถ้าไม่มีให้เติมเอง
+        # เช็คว่า ENV มี header มั้ย ถ้าไม่มีให้เติมเอง
         if not env_cookies.strip().startswith("#"):
             env_cookies = "# Netscape HTTP Cookie File\n" + env_cookies.strip()
 
@@ -90,7 +94,7 @@ music_queue = None
         print("⚠️ ไม่พบ cookies → โหลดแบบปกติ (อาจเล่นไม่ได้ถ้าเป็นวิดีโอจำกัดอายุ)")
 
     ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
-    return ytdl.extract_info(url, download=download)
+    return ydl.extract_info(url, download=download)
 
 async def connect_voice(channel):
     for attempt in range(3):
