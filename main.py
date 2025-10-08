@@ -49,7 +49,7 @@ music_queue = None
 
 def ytdl_extract_info(url, download):
     ytdl_format_options = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best', 
+        'format': 'bestaudio/best',
         'merge_output_format': 'm4a',
         'quiet': True,
         'default_search': 'ytsearch',
