@@ -47,19 +47,10 @@ auto_leave_timers = defaultdict(int)
 last_ui_message = None
 music_queue = None
 
-import os
-import yt_dlp
-
-import os
-import yt_dlp
-
 def ytdl_extract_info(url, download):
-    cookies_path = "cookies.txt"
-    env_cookies = os.getenv("YT_COOKIES")
-
-    # base options
     ytdl_format_options = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'format': 'bestaudio[ext=m4a]/bestaudio/best', 
+        'merge_output_format': 'm4a',
         'quiet': True,
         'default_search': 'ytsearch',
         'extract_flat': False,
@@ -70,18 +61,24 @@ def ytdl_extract_info(url, download):
         'no_warnings': True,
         'extractor_args': {
             'youtube': {
-                'player_client': ['web']
+                'player_client': ['android', 'web', 'ios']
             }
         }
     }
 
-    # ✅ ถ้ามีไฟล์ cookies.txt อยู่แล้ว
+    cookies_path = "cookies.txt"
+    env_cookies = os.getenv("YT_COOKIES")
+
+    print("DEBUG: os.getcwd() =", os.getcwd())
+    print("DEBUG: cookies.txt exists =", os.path.exists(cookies_path))
+    print("DEBUG: env YT_COOKIES =", bool(env_cookies))
+    
     if os.path.exists(cookies_path):
         ytdl_format_options["cookiefile"] = cookies_path
         print("✅ ใช้ cookies.txt โหลดเพลง")
 
-    # ✅ ถ้าไม่มีไฟล์ แต่มี ENV
     elif env_cookies:
+        # 🔥 เพิ่มบรรทัดนี้เพื่อกันไม่ให้ yt_dlp error
         if not env_cookies.strip().startswith("#"):
             env_cookies = "# Netscape HTTP Cookie File\n" + env_cookies.strip()
 
@@ -94,9 +91,8 @@ def ytdl_extract_info(url, download):
     else:
         print("⚠️ ไม่พบ cookies → โหลดแบบปกติ (อาจเล่นไม่ได้ถ้าเป็นวิดีโอจำกัดอายุ)")
 
-    # ✅ ใช้ ytdl ตัวเดียว ไม่สลับชื่อ
-    with yt_dlp.YoutubeDL(ytdl_format_options) as ytdl:
-        return ytdl.extract_info(url, download=download)
+    ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
+    return ytdl.extract_info(url, download=download)
 
 async def connect_voice(channel):
     for attempt in range(3):
@@ -528,7 +524,8 @@ async def play_next(interaction: discord.Interaction, thinking_msg: Optional[dis
             '-bufsize 300M '
             '-b:a 256k '
             '-rtbufsize 650M '
-            '-af aresample=async=2000:min_hard_comp=0.100:first_pts=0,dynaudnorm=f=150:g=15,volume=1.0 '
+            '-af aresample=async=1400:min_hard_comp=0.100:first_pts=0,'
+            'dynaudnorm=f=150:g=15,volume=1.0 '
             '-use_wallclock_as_timestamps 1 '
         )
     }
