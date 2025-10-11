@@ -29,3 +29,4 @@ urllib3==2.4.0
 Werkzeug==3.1.3
 yarl==1.20.0
 yt-dlp
+google-api-python-client
