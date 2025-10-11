@@ -27,7 +27,46 @@ from PIL import Image
 from flask import Flask
 from threading import Thread
 
+import io
+import json
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+from googleapiclient.http import MediaIoBaseDownload
+
 load_dotenv()
+
+def download_cookie_from_drive():
+    """โหลด cookies.txt จาก Google Drive โดยใช้ service account ที่เก็บใน Environment Variable"""
+    try:
+        service_json_str = os.getenv("mj-need-cookie-58f1c6a3a99e.json")
+        file_id = os.getenv("1RARypdufcb5T6z0pG5bsPPMc-AF1Vaoh")
+
+        if not service_json_str or not file_id:
+            print("⚠️ GOOGLE_SERVICE_JSON หรือ COOKIE_FILE_ID ไม่ได้ตั้งค่าใน Environment")
+            return False
+
+        service_info = json.loads(service_json_str)
+        creds = service_account.Credentials.from_service_account_info(
+            service_info,
+            scopes=["https://www.googleapis.com/auth/drive.readonly"]
+        )
+
+        service = build("drive", "v3", credentials=creds)
+        request = service.files().get_media(fileId=file_id)
+        fh = io.FileIO("cookies.txt", "wb")
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            print(f"Downloading cookies: {int(status.progress() * 100)}%")
+
+        print("✅ Cookie.txt downloaded successfully!")
+        return True
+    except Exception as e:
+        print(f"⚠️ โหลด cookie.txt จาก Drive ไม่สำเร็จ: {e}")
+        return False
+
+download_cookie_from_drive()
 
 app = Flask('')
 
@@ -41,7 +80,7 @@ def run():
 def keep_alive():
     t = Thread(target=run)
     t.start()
-    
+
 preload_queue = asyncio.Queue()
 auto_leave_timers = defaultdict(int)
 last_ui_message = None
@@ -59,40 +98,39 @@ def ytdl_extract_info(url, download):
         'geo_bypass': True,
         'cachedir': False,
         'no_warnings': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web', 'ios']
-            }
-        }
+        'extractor_args': {'youtube': {'player_client': ['android', 'web', 'ios']}}
     }
 
     cookies_path = "cookies.txt"
     env_cookies = os.getenv("YT_COOKIES")
+    temp_cookie = False
 
-    print("DEBUG: os.getcwd() =", os.getcwd())
-    print("DEBUG: cookies.txt exists =", os.path.exists(cookies_path))
-    print("DEBUG: env YT_COOKIES =", bool(env_cookies))
-    
+    print(f"DEBUG: current directory = {os.getcwd()}")
+    print(f"DEBUG: cookies.txt exists = {os.path.exists(cookies_path)}")
+    print(f"DEBUG: env YT_COOKIES found = {bool(env_cookies)}")
+
     if os.path.exists(cookies_path):
         ytdl_format_options["cookiefile"] = cookies_path
         print("✅ ใช้ cookies.txt โหลดเพลง")
-
     elif env_cookies:
-        # 🔥 เพิ่มบรรทัดนี้เพื่อกันไม่ให้ yt_dlp error
         if not env_cookies.strip().startswith("#"):
             env_cookies = "# Netscape HTTP Cookie File\n" + env_cookies.strip()
-
         with open(cookies_path, "w", encoding="utf-8") as f:
             f.write(env_cookies)
-
         ytdl_format_options["cookiefile"] = cookies_path
+        temp_cookie = True
         print("✅ ใช้ cookies จาก Environment Variable โหลดเพลง")
-
     else:
         print("⚠️ ไม่พบ cookies → โหลดแบบปกติ (อาจเล่นไม่ได้ถ้าเป็นวิดีโอจำกัดอายุ)")
 
-    ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
-    return ytdl.extract_info(url, download=download)
+    with yt_dlp.YoutubeDL(ytdl_format_options) as ytdl:
+        info = ytdl.extract_info(url, download=download)
+
+    if temp_cookie and os.path.exists(cookies_path):
+        os.remove(cookies_path)
+        print("🧹 ลบ cookies.txt ชั่วคราวแล้ว")
+
+    return info
 
 async def connect_voice(channel):
     for attempt in range(3):
@@ -105,12 +143,6 @@ async def connect_voice(channel):
             else:
                 raise
     return None
-
-class NoCacheSpotifyClientCredentials(SpotifyClientCredentials):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-    def get_cache_handler(self):
-        return None
 
 class MusicQueue:
     def __init__(self):
