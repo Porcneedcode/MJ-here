@@ -8,7 +8,7 @@ __pycache__/
 # ===========================
 # Python Environments
 # ===========================
-.env           # Environment variables (tokens, API keys)
+.env            # Environment variables (tokens, API keys)
 .venv/
 env/
 venv/
@@ -41,6 +41,13 @@ __pypackages__/
 .spyderproject
 .spyproject
 .ropeproject
+
+# ===========================
+# Google Service Account JSON
+# ===========================
+mj-need-cookie-*.json
+*.json
+!package.json     # (อนุญาตไฟล์ package.json ถ้ามี)
 
 # ===========================
 # Flask / Web
